@@ -15,11 +15,24 @@ public class Main {
         // Creating an object of BuffferedReader class
         BufferedReader br = new BufferedReader(new FileReader(testFile));
 
-        String st;
+        String line;
+        char action;
+        int pageAddress;
+        int pageValue;
 
-        while ((st = br.readLine() ) != null){
+        while ((line = br.readLine() ) != null){
+            //for(int i=0; i < line.length(); i++ ) {
+                char[] lineArray = line.toCharArray();
+                if (lineArray[0] == 'w' || lineArray[0] == 'W') {
+                    System.out.println(lineArray[0]);
+                } else if (lineArray[0] == 'r' || lineArray[0] == 'R') {
+                    System.out.println(lineArray[0]);
+                } else if (lineArray[0] == 'p' || lineArray[0] == 'P') {
+                    System.out.println(lineArray[0]);
+                }
+            //}
             // Print the string of each line
-            System.out.println(st);
+            //System.out.println(line);
         }
 
 
