@@ -7,21 +7,14 @@ public class PageTable {
     public ArrayList<UserPage> pageTables;
 
     public PageTable(){
-        pageTables = new ArrayList<>();
+        pageTables = new ArrayList<>(1025);
     }
 
-    public void add(int address, int value){
-        //pageTables.add(new UserPages(address, value));
+    public void add(int address, int value, boolean modified){
+        pageTables.add(new UserPage(address, value, modified));
     }
 
-    public int read(int address){
 
-        int value = 0;
-
-
-
-        return value;
-    }
 
 
 }
