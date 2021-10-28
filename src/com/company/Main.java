@@ -2,36 +2,13 @@ package com.company;
 
 import java.io.*;
 import java.util.ArrayList;
-import java.util.Random;
+
 
 public class Main {
 
     public static int totalNumberOfPages = 0,swapIns = 0,swapOuts = 0, memCycles=0, cyclePerSwap= 5000, pageSize=4096,
     numberOfMemAccess = 0,maxDirectorySize = 1024, maxPageTableSize = 1024;
 
-
-    //checks for duplicates when we are adding pages to the working set
-    public static int CompareAddresses(int address, ArrayList<PageFrame> list) {
-
-        for(int i = 0; i < list.size(); i++) {
-            if(list.get(i).address == address) {
-                return i;
-            }
-        }
-        return -1;
-    }
-
-    //choose page in working set to replace
-    public static int Killer(ArrayList<PageFrame> pf){
-        for(int i = 0; i < pf.size(); i++){
-            //checking for a read page since they are cheaper to replace
-            if (pf.get(i).modified == false){
-                return i;
-            }
-        }
-        Random rand = new Random();
-        return rand.nextInt(totalNumberOfPages+1);
-    }
 
     public static void main(String[] args) throws Exception{
 
@@ -45,7 +22,6 @@ public class Main {
         String[] inputLine;
         int pageAddress,pageValue;
         String line;
-
 
         // Passing the path to the file as a parameter
         File testFile = new File(
@@ -145,7 +121,7 @@ public class Main {
             int address = PD.directoryTable.get(0).pageTables.get(i).address;
             int value = PD.directoryTable.get(0).pageTables.get(i).value;
             PageFrame PF = new PageFrame(modified,address,value,false);
-            int possibleDuplicate = CompareAddresses(address,pf);
+            int possibleDuplicate = Utilities.CompareAddresses(address,pf);
 
             //Making sure we don't go over our working set while filling it up
             if(pf.size() < totalNumberOfPages + 1){
@@ -155,26 +131,26 @@ public class Main {
                 }
                 //if duplicate found we replace it with the new one
                 else if(possibleDuplicate != (-1)){
+                    //TODO change to do nothing
                     pf.set(possibleDuplicate,PF);
                 }
             }
             // if working set full then we need to perform swapping.
             else{
-                //if duplicate found replace it
+                //if page already in working set then
+                //
                 if(possibleDuplicate != (-1)){
+                    //TODO change to nothing
                     pf.set(possibleDuplicate,PF);
                 }
                 else{
                     //swap the page with a read only
                     //page or if all write pages then
                     // it chooses a page at random to swap.
-                    pf.set(Killer(pf),PF);
+                    pf.set(Utilities.Killer(pf),PF);
                 }
             }
         }
-
-
-
 
 
     }
