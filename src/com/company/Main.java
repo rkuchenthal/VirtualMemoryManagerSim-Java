@@ -22,6 +22,8 @@ public class Main {
         String[] inputLine;
         int pageAddress,pageValue;
         String line;
+        char[] operator;
+        boolean operationBit = false;
 
         // Passing the path to the file as a parameter
         File testFile = new File(
@@ -48,7 +50,7 @@ public class Main {
             //convert the items from inputLine[] from strings
             //to proper data types
             if(inputLine[0].equals("w") || inputLine[0].equals("W") ){
-                char[] operator = inputLine[0].toCharArray();
+                operator = inputLine[0].toCharArray();
                 int address = Integer.parseInt(inputLine[1]);
                 System.out.println(inputLine[2]);
                 int value = Integer.parseInt(inputLine[2]);
@@ -59,7 +61,7 @@ public class Main {
                 inputs.add(IP);
             }
             else{
-                char[] operator = inputLine[0].toCharArray();
+                operator = inputLine[0].toCharArray();
                 int address = Integer.parseInt(inputLine[1]);
                 //System.out.println(inputLine[2]);
                 //int value = Integer.parseInt(inputLine[2]);
@@ -71,6 +73,8 @@ public class Main {
             }
         }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        //GETTING THE INPUTS INSERTED INTO THE PAGEDIRECTORY->PAGETABLE ARRAYLISTS.
 
         //will keep track of total number of inputs in
         // case we need to start a new table
@@ -91,26 +95,35 @@ public class Main {
                     break;
                 }
 
+                //making sure w is has the modified bit checked
+                //while leaving all read as not checked
+                if((inputs.get(c).operation) == 'w'){
+                    operationBit = true;
+                }
                 pageAddress = inputs.get(c).address;
                 pageValue= inputs.get(c).value;
-                c++;
+
 
                 //now entering the individual page values into list
                 if ((inputs.get(c).operation == 'w') || (inputs.get(c).operation == 'W')) {
-                    UserPage UP = new UserPage(pageAddress,pageValue,true);
+                    UserPage UP = new UserPage(operationBit,pageAddress,pageValue);
                     PD.directoryTable.get(i).add(UP.address, UP.value, UP.modified);
 
                     //System.out.println(pageAddress +" "+pageValue);
                 }
                 else if ((inputs.get(c).operation == 'r')  || (inputs.get(c).operation == 'R') ) {
-                    UserPage UP = new UserPage(pageAddress,pageValue,false);
+                    UserPage UP = new UserPage(operationBit,pageAddress,pageValue);
                     PD.directoryTable.get(i).add(UP.address, UP.value, UP.modified);
 
                     //System.out.println(pageAddress);
                 }
+                //increment input counter
+                c++;
             }
         }
  ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        //INSERTING INPUTS INTO THE PAGE TABLE OR SWAPPING THEM OUT
 
         //Add the inputs list into the Working Set of Frames
         //and performs required swapping
@@ -120,38 +133,50 @@ public class Main {
             boolean modified = PD.directoryTable.get(0).pageTables.get(i).modified;
             int address = PD.directoryTable.get(0).pageTables.get(i).address;
             int value = PD.directoryTable.get(0).pageTables.get(i).value;
-            PageFrame PF = new PageFrame(modified,address,value,false);
+            //TODO have modified bit change to true when it is a w input
+            PageFrame PF = new PageFrame(modified,address,value);
             int possibleDuplicate = Utilities.CompareAddresses(address,pf);
 
             //Making sure we don't go over our working set while filling it up
             if(pf.size() < totalNumberOfPages + 1){
                 //Making sure while filling the working set doesn't have duplicates
+                //TODO make sure reads remain un modified
                 if(possibleDuplicate == (-1)){
                     pf.add(PF);
+                    //TODO add page fault incrementer
                 }
                 //if duplicate found we replace it with the new one
                 else if(possibleDuplicate != (-1)){
                     //TODO change to do nothing
-                    pf.set(possibleDuplicate,PF);
+                    //TODO if we read a read dont change modified bit
+                    //Todo if we read a w or w a read then change to modified
+                    //this is just going to change the value, but
+                    // retain the same disk address for page
+                    pf.set(possibleDuplicate, PF);
+
+                    //TODO add modified counter here if it is a w input
                 }
             }
             // if working set full then we need to perform swapping.
             else{
-                //if page already in working set then
-                //
+                //if duplicate found we replace it with the new one
+                //so only the value wil change
+                //TODO if we read a read dont change modified bit
+                //Todo if we read a w or w a read then change to modified
                 if(possibleDuplicate != (-1)){
                     //TODO change to nothing
                     pf.set(possibleDuplicate,PF);
+                    //TODO add page fault incrementer
                 }
                 else{
                     //swap the page with a read only
                     //page or if all write pages then
                     // it chooses a page at random to swap.
+                    //TODO make sure reads remain un modified
                     pf.set(Utilities.Killer(pf),PF);
+                    //TODO add modified counter here if it is a w input
                 }
             }
         }
-
-
     }
 }
