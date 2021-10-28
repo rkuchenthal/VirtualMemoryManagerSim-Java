@@ -10,8 +10,8 @@ public class PageTable {
         pageTables = new ArrayList<>(1025);
     }
 
-    public void add(int address, int value, boolean modified){
-        pageTables.add(new UserPage(address, value, modified));
+    public void add(boolean modified,int address ){
+        pageTables.add(new UserPage(modified,address));
     }
 
 

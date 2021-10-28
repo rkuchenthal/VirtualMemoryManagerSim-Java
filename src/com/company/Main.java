@@ -6,9 +6,10 @@ import java.util.ArrayList;
 
 public class Main {
 
-    public static int totalNumberOfPages = 0,swapIns = 0,swapOuts = 0, memCycles=0, cyclePerSwap= 5000, pageSize=4096,
-    numberOfMemAccess = 0,maxDirectorySize = 1024, maxPageTableSize = 1024;
+    public static int totalNumberOfPages = 0,swapIns = 0,swapOuts = 0, totalInputs = 0, memCycles =0,
+    numberOfMemAccess = 0,maxDirectorySize = 1024, maxPageTableSize = 1024, totalNumberOfPageTables=0;
 
+    public static ArrayList<Integer> AddressIndexer = new ArrayList<>();
 
     public static void main(String[] args) throws Exception{
 
@@ -44,19 +45,23 @@ public class Main {
             //assign the working set allocation
             if (inputLine[0].equals("p") || inputLine[0].equals("P")) {
                 totalNumberOfPages = Integer.parseInt(inputLine[1]);
-                System.out.println(totalNumberOfPages);
+                //System.out.println(totalNumberOfPages);
                 continue;
             }
+
+            //increment the totalInputs so we can track the total
+            totalInputs++;
+
             //convert the items from inputLine[] from strings
             //to proper data types
             if(inputLine[0].equals("w") || inputLine[0].equals("W") ){
                 operator = inputLine[0].toCharArray();
                 int address = Integer.parseInt(inputLine[1]);
-                System.out.println(inputLine[2]);
-                int value = Integer.parseInt(inputLine[2]);
+                //System.out.println(inputLine[2]);
+                //int value = Integer.parseInt(inputLine[2]);
 
                 //create Inputs object and insert inputLine[] values in
-                Inputs IP = new Inputs(operator[0], address, value);
+                Inputs IP = new Inputs(operator[0], address);
                 //add IP object to the arrayList inputs to be compared later
                 inputs.add(IP);
             }
@@ -67,7 +72,7 @@ public class Main {
                 //int value = Integer.parseInt(inputLine[2]);
 
                 //create Inputs object and insert inputLine[] values in
-                Inputs IP = new Inputs(operator[0], address, 0);
+                Inputs IP = new Inputs(operator[0], address);
                 //add IP object to the arrayList inputs to be compared later
                 inputs.add(IP);
             }
@@ -83,11 +88,16 @@ public class Main {
         //for this assignment we are to assume we will use no more
         //than 1 directory so it is hard coded to 1
         for(int i = 0; i < 1; i++ ){
-            System.out.println("Page Directory "+ i);
+            //System.out.println("Page Directory "+ i);
 
             //now iterate through the page tables
             for(int j = 0; j < maxPageTableSize; j++){
-                System.out.println("Page #"+ j + " of 1023.");
+                //Test comment out before submission
+                //System.out.println("Page #"+ j + " of 1023.");
+
+                //increment totalNumberOfPageTables to reflect how
+                // many tables we have created
+                totalNumberOfPageTables++;
 
                 //check to make sure we dont run off the stack
                 //of inputs list
@@ -101,19 +111,17 @@ public class Main {
                     operationBit = true;
                 }
                 pageAddress = inputs.get(c).address;
-                pageValue= inputs.get(c).value;
-
 
                 //now entering the individual page values into list
                 if ((inputs.get(c).operation == 'w') || (inputs.get(c).operation == 'W')) {
-                    UserPage UP = new UserPage(operationBit,pageAddress,pageValue);
-                    PD.directoryTable.get(i).add(UP.address, UP.value, UP.modified);
+                    UserPage UP = new UserPage(operationBit,pageAddress);
+                    PD.directoryTable.get(i).add(UP.modified,UP.address);
 
                     //System.out.println(pageAddress +" "+pageValue);
                 }
                 else if ((inputs.get(c).operation == 'r')  || (inputs.get(c).operation == 'R') ) {
-                    UserPage UP = new UserPage(operationBit,pageAddress,pageValue);
-                    PD.directoryTable.get(i).add(UP.address, UP.value, UP.modified);
+                    UserPage UP = new UserPage(operationBit,pageAddress);
+                    PD.directoryTable.get(i).add(UP.modified,UP.address);
 
                     //System.out.println(pageAddress);
                 }
@@ -130,45 +138,84 @@ public class Main {
         for(int i = 0; i < PD.directoryTable.get(0).pageTables.size()-1; i++){
 
             //Initializing the page vars from the pageTable array
-            boolean modified = PD.directoryTable.get(0).pageTables.get(i).modified;
-            int address = PD.directoryTable.get(0).pageTables.get(i).address;
-            int value = PD.directoryTable.get(0).pageTables.get(i).value;
-            //TODO have modified bit change to true when it is a w input
-            PageFrame PF = new PageFrame(modified,address,value);
-            int possibleDuplicate = Utilities.CompareAddresses(address,pf);
+            boolean incModified = PD.directoryTable.get(0).pageTables.get(i).modified;
+            int incAddress = PD.directoryTable.get(0).pageTables.get(i).address;
+            int possibleDuplicate = Utilities.CompareAddresses(incAddress,pf);
+
+
+            //check to see if it is a swap-in and if so increment memCycles & swap-ins
+            Utilities.SwapInChecker(AddressIndexer, pf,incAddress);
 
             //Making sure we don't go over our working set while filling it up
             if(pf.size() < totalNumberOfPages + 1){
                 //Making sure while filling the working set doesn't have duplicates
-                //TODO make sure reads remain un modified
                 if(possibleDuplicate == (-1)){
+                    PageFrame PF = new PageFrame(incModified,incAddress);
+                    //check to see if it is a swap-in and if so increment memCycles & swap-ins
+                    Utilities.SwapInChecker(AddressIndexer, pf,incAddress);
                     pf.add(PF);
-                    //TODO add page fault incrementer
-                }
-                //if duplicate found we replace it with the new one
-                else if(possibleDuplicate != (-1)){
-                    //TODO change to do nothing
-                    //TODO if we read a read dont change modified bit
-                    //Todo if we read a w or w a read then change to modified
-                    //this is just going to change the value, but
-                    // retain the same disk address for page
-                    pf.set(possibleDuplicate, PF);
 
-                    //TODO add modified counter here if it is a w input
+                }
+                //TODO optimize if statements
+                //if duplicate found we change its modified bit if applicable
+                else if(possibleDuplicate != (-1)){
+
+                    //if we read a read don't change modified bit
+                    // if we read a w or w a read then change to modified
+                    if(pf.get(possibleDuplicate).modified == true && incModified == false
+                        || pf.get(possibleDuplicate).modified == false && incModified == true ){
+                        PageFrame PF = new PageFrame(true,incAddress);
+                        //check to see if it is a swap-in and if so increment memCycles & swap-ins
+                        //Utilities.SwapInChecker(AddressIndexer, pf,incAddress);
+                        //this is just going to change the value, but
+                        // retain the same disk address for page
+                        pf.set(possibleDuplicate, PF);
+                    }
+                    //if we read a read we don't change modified bit
+                    else{
+                        PageFrame PF = new PageFrame(incModified,incAddress);
+
+                        //this is just going to change the value, but
+                        // retain the same disk address for page
+                        pf.set(possibleDuplicate, PF);
+                    }
                 }
             }
             // if working set full then we need to perform swapping.
+            //TODO optimize if statements
             else{
-                //if duplicate found we replace it with the new one
-                //so only the value wil change
-                //TODO if we read a read dont change modified bit
-                //Todo if we read a w or w a read then change to modified
+
+                //if duplicate found we replace change the modified bit if applicable
                 if(possibleDuplicate != (-1)){
-                    //TODO change to nothing
-                    pf.set(possibleDuplicate,PF);
-                    //TODO add page fault incrementer
+
+                    //if we read a read don't change modified bit
+                    // if we read a w or w a read then change to modified
+                    if(pf.get(possibleDuplicate).modified == true && incModified == false
+                            || pf.get(possibleDuplicate).modified == false && incModified == true ){
+                        PageFrame PF = new PageFrame(true,incAddress);
+                        //check to see if it is a swap-in and if so increment memCycles & swap-ins
+                        //Utilities.SwapInChecker(AddressIndexer, pf,incAddress);
+                        //this is just going to change the value, but
+                        // retain the same disk address for page
+                        pf.set(possibleDuplicate, PF);
+                    }
+                    //if we read a read we don't change modified bit
+                    else{
+                        PageFrame PF = new PageFrame(incModified,incAddress);
+                        //check to see if it is a swap-in and if so increment memCycles & swap-ins
+                        //Utilities.SwapInChecker(AddressIndexer, pf,incAddress);
+                        //this is just going to change the value, but
+                        // retain the same disk address for page
+                        pf.set(possibleDuplicate, PF);
+                    }
                 }
+                //else find a page to kill/swap with
                 else{
+                    PageFrame PF = new PageFrame(incModified,incAddress);
+
+                    //check to see if it is a swap-in and if so increment memCycles & swap-ins
+                    //Utilities.SwapInChecker(AddressIndexer, pf,incAddress);
+
                     //swap the page with a read only
                     //page or if all write pages then
                     // it chooses a page at random to swap.
@@ -178,5 +225,9 @@ public class Main {
                 }
             }
         }
+
+        //Print all outputs to cmd line
+        Outputs.OutputToCmd();
+
     }
 }
